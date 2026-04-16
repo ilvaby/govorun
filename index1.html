@@ -3,282 +3,404 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🤖 Говорящая аватарка</title>
+    <title>Живой аватар — фото с анимацией рта</title>
     <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            background: linear-gradient(135deg, #1e1e2f, #2a2a40);
             min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             display: flex;
             justify-content: center;
             align-items: center;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
             padding: 20px;
         }
-        .card {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 40px;
-            padding: 30px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
-            border: 1px solid rgba(255,255,255,0.2);
-            max-width: 500px;
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 30px;
+            padding: 25px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
             width: 100%;
             text-align: center;
         }
-        .avatar {
-            font-size: 120px;
-            filter: drop-shadow(0 10px 15px rgba(0,0,0,0.3));
-            margin-bottom: 10px;
-            transition: transform 0.2s;
-        }
-        /* Анимация "разговора" */
-        .speaking {
-            transform: scale(1.1);
-            animation: pulse 0.5s infinite alternate;
-        }
-        @keyframes pulse {
-            from { filter: drop-shadow(0 10px 15px rgba(0,255,200,0.3)); }
-            to { filter: drop-shadow(0 15px 25px rgba(0,255,200,0.6)); }
-        }
-        h2 {
-            color: white;
-            margin-top: 0;
-            font-weight: 400;
-            text-shadow: 0 2px 5px black;
-        }
-        .voice-selector {
-            background: rgba(0,0,0,0.3);
-            border-radius: 30px;
-            padding: 5px;
+        h1 { color: #333; margin-bottom: 15px; font-size: 22px; }
+
+        /* Аватар */
+        .avatar-container {
+            position: relative;
             display: inline-block;
-            margin-bottom: 20px;
-            border: 1px solid #555;
+            margin-bottom: 15px;
         }
-        select {
-            background: transparent;
+        .avatar {
+            width: 250px;
+            height: 250px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border-radius: 50%;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            position: relative;
+            cursor: pointer;
+        }
+        .avatar-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        /* Маска рта — будет плавать поверх фото */
+        .mouth-mask {
+            position: absolute;
+            bottom: 25%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 30px;
+            transition: all 0.05s ease;
+            pointer-events: none;
+            z-index: 10;
+        }
+        .mouth-shape {
+            width: 100%;
+            height: 100%;
+            background: #2c1810;
+            border-radius: 0 0 50% 50%;
+            transition: all 0.05s ease;
+        }
+        /* Анимация при речи */
+        .avatar.speaking .mouth-shape {
+            height: 45px;
+            border-radius: 40%;
+            background: #4a2a1a;
+        }
+        /* Дефолтный мультяшный режим (скрыт по умолчанию) */
+        .default-face {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border-radius: 50%;
+        }
+        .avatar.default .default-face { display: flex; }
+        .avatar.default .avatar-img { display: none; }
+        .avatar.default .mouth-mask { display: none; }
+        
+        .avatar.custom .default-face { display: none; }
+        .avatar.custom .avatar-img { display: block; }
+        .avatar.custom .mouth-mask { display: block; }
+
+        .eyes {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+        }
+        .eye {
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            position: relative;
+        }
+        .eye::after {
+            content: '';
+            width: 10px;
+            height: 10px;
+            background: #333;
+            border-radius: 50%;
+            position: absolute;
+            top: 5px;
+            left: 5px;
+        }
+        .default-mouth {
+            width: 40px;
+            height: 20px;
+            background: #333;
+            border-radius: 0 0 20px 20px;
+            margin: 0 auto;
+        }
+        .avatar.speaking .default-mouth {
+            height: 30px;
+            border-radius: 20px;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+        .avatar.speaking { animation: bounce 0.4s ease infinite; }
+
+        /* Элементы управления */
+        .photo-upload { margin: 10px 0; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+        .upload-btn, .reset-avatar {
+            background: #e9ecef;
+            color: #555;
+            padding: 8px 16px;
+            border-radius: 25px;
+            font-size: 13px;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s;
+        }
+        .reset-avatar { background: #ff6b6b; color: white; }
+        .voice-panel {
+            background: #f8f9fa;
+            border-radius: 20px;
+            padding: 12px;
+            margin: 12px 0;
+            text-align: left;
+        }
+        .control-group { margin-bottom: 10px; }
+        .control-group label { display: flex; justify-content: space-between; font-size: 12px; color: #666; margin-bottom: 4px; }
+        input[type="range"] { width: 100%; height: 4px; -webkit-appearance: none; background: #ddd; border-radius: 2px; }
+        input[type="range"]::-webkit-slider-thumb { width: 14px; height: 14px; background: #667eea; border-radius: 50%; cursor: pointer; -webkit-appearance: none; }
+        .value-display { background: #e9ecef; padding: 2px 8px; border-radius: 20px; font-size: 11px; }
+        .voice-select { width: 100%; padding: 8px; border-radius: 15px; border: 2px solid #ddd; font-size: 13px; margin-bottom: 10px; }
+        .text-input { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 15px; font-size: 14px; resize: vertical; margin: 10px 0; font-family: inherit; }
+        .button-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
             padding: 10px 20px;
-            font-size: 16px;
-            border-radius: 30px;
-            outline: none;
-            cursor: pointer;
-        }
-        select option {
-            background: #2a2a40;
-        }
-        .input-group {
-            display: flex;
-            background: white;
-            border-radius: 50px;
-            padding: 5px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-        }
-        #textInput {
-            flex: 1;
-            border: none;
-            padding: 15px 20px;
-            font-size: 18px;
-            border-radius: 50px;
-            outline: none;
-            background: transparent;
-        }
-        button {
-            background: #00c8ff;
-            border: none;
-            color: white;
-            font-size: 28px;
-            padding: 5px 20px;
-            border-radius: 50px;
-            cursor: pointer;
-            transition: 0.2s;
-            box-shadow: 0 5px 0 #0088aa;
-            border: none;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        button:hover {
-            background: #00aadd;
-            transform: translateY(-2px);
-            box-shadow: 0 7px 0 #0088aa;
-        }
-        button:active {
-            transform: translateY(3px);
-            box-shadow: 0 2px 0 #0088aa;
-        }
-        .hint {
-            color: #aaa;
-            margin-top: 15px;
             font-size: 14px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: bold;
         }
+        .record-btn {
+            background: linear-gradient(135deg, #f5576c 0%, #f093fb 100%);
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            padding: 0;
+            font-size: 24px;
+        }
+        .record-btn.recording { animation: pulse 1.5s infinite; }
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(245, 87, 108, 0.7); }
+            70% { transform: scale(1.05); box-shadow: 0 0 0 12px rgba(245, 87, 108, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(245, 87, 108, 0); }
+        }
+        .status { margin-top: 12px; color: #666; font-size: 12px; min-height: 35px; }
+        .recognized-text { background: #f0f0f0; padding: 8px; border-radius: 12px; margin: 10px 0; font-size: 13px; border-left: 4px solid #667eea; text-align: left; }
+        .mouth-controls { margin-top: 10px; padding-top: 8px; border-top: 1px solid #ddd; }
     </style>
 </head>
 <body>
+<div class="container">
+    <h1>🎭 Живой аватар (фото с анимацией) 🎭</h1>
 
-<div class="card">
-    <!-- Эмодзи аватарки. Можете заменить на картинку (img) -->
-    <div class="avatar" id="avatarFace">🤖</div>
-    <h2>Говорящий Бот</h2>
-    
-    <!-- Выбор другого голоса -->
-    <div class="voice-selector">
-        <select id="voiceSelect"></select>
+    <div class="avatar-container">
+        <div class="avatar default" id="avatar">
+            <div class="default-face">
+                <div class="eyes"><div class="eye"></div><div class="eye"></div></div>
+                <div class="default-mouth" id="defaultMouth"></div>
+            </div>
+            <img id="avatarImg" class="avatar-img" alt="Фото">
+            <!-- Анимированная маска рта для фото -->
+            <div class="mouth-mask" id="mouthMask">
+                <div class="mouth-shape" id="mouthShape"></div>
+            </div>
+        </div>
     </div>
 
-    <!-- Поле ввода + кнопка с микрофоном -->
-    <div class="input-group">
-        <input type="text" id="textInput" placeholder="Напиши что-нибудь..." value="Привет! Я умею говорить разными голосами!">
-        <button id="speakButton" title="Озвучить текст">🎤</button>
+    <div class="photo-upload">
+        <label class="upload-btn">📷 Загрузить своё фото
+            <input type="file" id="photoInput" accept="image/*" style="display: none;">
+        </label>
+        <button class="reset-avatar" id="resetAvatarBtn">🔄 Мультяшный режим</button>
     </div>
-    <div class="hint">← Нажми на микрофон — и текст зазвучит мгновенно!</div>
+
+    <!-- Настройки положения рта на фото -->
+    <div class="voice-panel">
+        <h3>🎭 Настройки рта для фото</h3>
+        <div class="control-group">
+            <label><span>📏 Размер рта</span><span id="mouthSizeVal" class="value-display">60</span></label>
+            <input type="range" id="mouthSizeSlider" min="30" max="120" step="2" value="60">
+        </div>
+        <div class="control-group">
+            <label><span>⬆️⬇️ Сдвиг рта (вверх/вниз)</span><span id="mouthOffsetVal" class="value-display">0</span></label>
+            <input type="range" id="mouthOffsetSlider" min="-40" max="40" step="2" value="0">
+        </div>
+        <div class="preset-buttons" style="display: flex; gap: 6px; justify-content: center;">
+            <button id="mouthStyle1" style="background:#e9ecef;color:#555;">🎭 Нормальный</button>
+            <button id="mouthStyle2" style="background:#e9ecef;color:#555;">😮 Широкий</button>
+            <button id="mouthStyle3" style="background:#e9ecef;color:#555;">😗 Маленький</button>
+        </div>
+    </div>
+
+    <select id="voiceSelect" class="voice-select"><option>Загрузка голосов...</option></select>
+
+    <div class="voice-panel">
+        <h3>🎛️ Настройки голоса</h3>
+        <div class="control-group"><label>🐢 Медленно — 🐇 Быстро<span id="rateValue" class="value-display">1.0</span></label><input type="range" id="rateSlider" min="0.5" max="2.0" step="0.05" value="1.0"></div>
+        <div class="control-group"><label>🗿 Низкий — 🎈 Писклявый<span id="pitchValue" class="value-display">1.2</span></label><input type="range" id="pitchSlider" min="0.5" max="2.0" step="0.05" value="1.2"></div>
+        <div class="preset-buttons" style="display: flex; gap: 6px; justify-content: center;">
+            <button onclick="setPreset(0.7,0.8)">📖 Мудрый</button><button onclick="setPreset(1.6,1.8)">⚡ Весёлый</button>
+            <button onclick="setPreset(0.8,0.4)">🤖 Робот</button><button onclick="setPreset(0.9,0.5)">👹 Бас</button>
+        </div>
+    </div>
+
+    <textarea id="textToSpeak" class="text-input" rows="2" placeholder="✏️ Напиши текст здесь..."></textarea>
+    <div class="button-row">
+        <button id="speakTextBtn">📝 Озвучить текст</button>
+        <button id="recordBtn" class="record-btn">🎤</button>
+    </div>
+    <div id="recognizedText" class="recognized-text" style="display: none;"></div>
+    <div id="status" class="status">✏️ Напиши текст и нажми "Озвучить текст"</div>
 </div>
 
 <script>
-    (function() {
-        "use strict";
+    // Элементы
+    const avatar = document.getElementById('avatar');
+    const avatarImg = document.getElementById('avatarImg');
+    const photoInput = document.getElementById('photoInput');
+    const resetAvatarBtn = document.getElementById('resetAvatarBtn');
+    const speakTextBtn = document.getElementById('speakTextBtn');
+    const textToSpeak = document.getElementById('textToSpeak');
+    const recordBtn = document.getElementById('recordBtn');
+    const statusDiv = document.getElementById('status');
+    const voiceSelect = document.getElementById('voiceSelect');
+    const recognizedTextDiv = document.getElementById('recognizedText');
+    const rateSlider = document.getElementById('rateSlider');
+    const pitchSlider = document.getElementById('pitchSlider');
+    const rateValue = document.getElementById('rateValue');
+    const pitchValue = document.getElementById('pitchValue');
+    const mouthMask = document.getElementById('mouthMask');
+    const mouthShape = document.getElementById('mouthShape');
+    const mouthSizeSlider = document.getElementById('mouthSizeSlider');
+    const mouthOffsetSlider = document.getElementById('mouthOffsetSlider');
+    const mouthSizeVal = document.getElementById('mouthSizeVal');
+    const mouthOffsetVal = document.getElementById('mouthOffsetVal');
 
-        // --- ЭЛЕМЕНТЫ НА СТРАНИЦЕ ---
-        const textInput = document.getElementById('textInput');
-        const speakBtn = document.getElementById('speakButton');
-        const voiceSelect = document.getElementById('voiceSelect');
-        const avatar = document.getElementById('avatarFace');
+    let currentUtterance = null, selectedVoice = null, recognition, isRecording = false;
+    let currentRate = 1.0, currentPitch = 1.2;
 
-        // --- ПЕРЕМЕННЫЕ ДЛЯ СИНТЕЗА РЕЧИ ---
-        let voices = [];
-        let selectedVoice = null;
-        const synth = window.speechSynthesis;
+    // Управление маской рта
+    function updateMouthTransform() {
+        let size = mouthSizeSlider.value;
+        let offset = mouthOffsetSlider.value;
+        mouthMask.style.width = size + 'px';
+        mouthMask.style.bottom = (25 + (offset * -0.2)) + '%'; // Преобразуем -40..40 в смещение
+        mouthSizeVal.innerText = size;
+        mouthOffsetVal.innerText = offset;
+    }
+    mouthSizeSlider.addEventListener('input', updateMouthTransform);
+    mouthOffsetSlider.addEventListener('input', updateMouthTransform);
+    
+    // Стили рта
+    document.getElementById('mouthStyle1').onclick = () => { mouthShape.style.borderRadius = '0 0 50% 50%'; mouthShape.style.width = '100%'; };
+    document.getElementById('mouthStyle2').onclick = () => { mouthShape.style.borderRadius = '40%'; mouthShape.style.width = '120%'; mouthShape.style.marginLeft = '-10%'; };
+    document.getElementById('mouthStyle3').onclick = () => { mouthShape.style.borderRadius = '0 0 40% 40%'; mouthShape.style.width = '70%'; mouthShape.style.marginLeft = '15%'; };
+    
+    rateSlider.addEventListener('input', () => { currentRate = parseFloat(rateSlider.value); rateValue.textContent = currentRate.toFixed(2); });
+    pitchSlider.addEventListener('input', () => { currentPitch = parseFloat(pitchSlider.value); pitchValue.textContent = currentPitch.toFixed(2); });
+    window.setPreset = (rate, pitch) => { rateSlider.value = rate; pitchSlider.value = pitch; currentRate = rate; currentPitch = pitch; rateValue.textContent = rate; pitchValue.textContent = pitch; statusDiv.innerHTML = '✨ Голос изменён! ✨'; };
 
-        // --- 1. ЗАГРУЗКА ДОСТУПНЫХ ГОЛОСОВ ---
-        function loadVoices() {
-            voices = synth.getVoices();
-            
-            // Очищаем список
+    // Загрузка фото
+    photoInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if(file) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                avatarImg.src = event.target.result;
+                avatar.classList.remove('default');
+                avatar.classList.add('custom');
+                // Сброс позиции рта по умолчанию
+                mouthSizeSlider.value = 60; mouthOffsetSlider.value = 0; updateMouthTransform();
+                statusDiv.innerHTML = '✅ Фото загружено! Теперь рот будет двигаться поверх фото. Покрути настройки рта.';
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+    resetAvatarBtn.addEventListener('click', () => {
+        avatar.classList.remove('custom');
+        avatar.classList.add('default');
+        avatarImg.src = '';
+        statusDiv.innerHTML = '🔄 Вернули мультяшного аватара.';
+    });
+
+    // Голоса
+    function loadVoices() {
+        function populate() {
+            const available = window.speechSynthesis.getVoices();
+            const ru = available.filter(v => v.lang.includes('ru'));
             voiceSelect.innerHTML = '';
-            
-            // Сортируем: сначала русские, потом остальные
-            const ruVoices = voices.filter(v => v.lang.includes('ru'));
-            const otherVoices = voices.filter(v => !v.lang.includes('ru'));
-            
-            // Добавляем русские голоса в начало списка
-            ruVoices.forEach(voice => {
-                const option = document.createElement('option');
-                option.value = voice.name;
-                option.textContent = `${voice.name} (${voice.lang}) 🇷🇺`;
-                voiceSelect.appendChild(option);
+            (ru.length ? ru : available).forEach(v => {
+                let opt = document.createElement('option');
+                opt.value = v.name;
+                opt.textContent = `${v.name} (${v.lang})`;
+                voiceSelect.appendChild(opt);
             });
-            
-            // Добавляем разделитель, если есть и русские и другие
-            if (ruVoices.length > 0 && otherVoices.length > 0) {
-                const separator = document.createElement('option');
-                separator.disabled = true;
-                separator.textContent = '──────────';
-                voiceSelect.appendChild(separator);
-            }
-            
-            // Добавляем остальные голоса
-            otherVoices.forEach(voice => {
-                const option = document.createElement('option');
-                option.value = voice.name;
-                option.textContent = `${voice.name} (${voice.lang})`;
-                voiceSelect.appendChild(option);
-            });
-            
-            // По умолчанию выбираем первый русский голос, если он есть
-            if (ruVoices.length > 0) {
-                voiceSelect.value = ruVoices[0].name;
-                selectedVoice = ruVoices[0];
-            } else if (voices.length > 0) {
-                voiceSelect.value = voices[0].name;
-                selectedVoice = voices[0];
-            }
+            if(voiceSelect.options.length) selectVoice();
         }
+        if(window.speechSynthesis.getVoices().length) populate();
+        else window.speechSynthesis.onvoiceschanged = populate;
+    }
+    function selectVoice() { selectedVoice = window.speechSynthesis.getVoices().find(v => v.name === voiceSelect.value); }
+    voiceSelect.addEventListener('change', selectVoice);
 
-        // Обновление выбранного голоса при изменении селекта
-        function updateSelectedVoice() {
-            const name = voiceSelect.value;
-            selectedVoice = voices.find(v => v.name === name) || null;
-        }
-
-        // Загрузка голосов (в Chrome они грузятся асинхронно, поэтому вешаем обработчик)
-        if (speechSynthesis.onvoiceschanged !== undefined) {
-            speechSynthesis.onvoiceschanged = loadVoices;
-        }
-        loadVoices(); // На случай если голоса уже загружены
-
-        voiceSelect.addEventListener('change', updateSelectedVoice);
-
-        // --- 2. ФУНКЦИЯ ОЗВУЧКИ ТЕКСТА МГНОВЕННО ---
-        function speakText(text) {
-            if (!text || text.trim() === '') {
-                text = 'Нечего говорить. Напиши текст!';
-            }
-            
-            // Останавливаем предыдущую речь, если она идет (чтобы не накладывалась)
-            if (synth.speaking) {
-                synth.cancel();
-            }
-            
-            const utterance = new SpeechSynthesisUtterance(text);
-            
-            // Устанавливаем выбранный голос
-            if (selectedVoice) {
-                utterance.voice = selectedVoice;
-            }
-            
-            // Язык можно оставить авто, но если голос выбран, он сам знает язык
-            utterance.lang = selectedVoice ? selectedVoice.lang : 'ru-RU';
-            
-            // Параметры для естественности
-            utterance.rate = 1.0;  // Скорость
-            utterance.pitch = 1.0; // Тон
-            utterance.volume = 1.0; // Громкость
-            
-            // --- ВИЗУАЛЬНЫЙ ЭФФЕКТ "РАЗГОВОРА" (аватарка шевелится) ---
-            avatar.classList.add('speaking');
-            
-            // Когда речь закончится — убираем анимацию
-            utterance.onend = function() {
-                avatar.classList.remove('speaking');
-            };
-            
-            utterance.onerror = function() {
-                avatar.classList.remove('speaking');
-            };
-            
-            // Запускаем речь
-            synth.speak(utterance);
-        }
-
-        // --- 3. ОБРАБОТЧИК НАЖАТИЯ НА МИКРОФОН ---
-        speakBtn.addEventListener('click', function() {
-            const text = textInput.value;
-            speakText(text);
+    // Анимация
+    function startSpeaking() { avatar.classList.add('speaking'); }
+    function stopSpeaking() { avatar.classList.remove('speaking'); }
+    function speakText(text) {
+        return new Promise((resolve) => {
+            if(!text.trim()) { resolve(); return; }
+            if(currentUtterance) window.speechSynthesis.cancel();
+            let utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'ru-RU';
+            utterance.rate = currentRate;
+            utterance.pitch = currentPitch;
+            if(selectedVoice) utterance.voice = selectedVoice;
+            utterance.onstart = () => { startSpeaking(); statusDiv.innerHTML = '🔊 Аватар говорит...'; };
+            utterance.onend = () => { stopSpeaking(); statusDiv.innerHTML = '✅ Готово!'; resolve(); };
+            utterance.onerror = () => { stopSpeaking(); statusDiv.innerHTML = '❌ Ошибка'; resolve(); };
+            currentUtterance = utterance;
+            window.speechSynthesis.speak(utterance);
         });
+    }
 
-        // Бонус: можно нажать Enter в поле ввода, чтобы тоже озвучить
-        textInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                speakText(textInput.value);
-            }
-        });
+    speakTextBtn.addEventListener('click', async () => {
+        let text = textToSpeak.value.trim();
+        if(!text) { statusDiv.innerHTML = '⚠️ Напиши текст!'; return; }
+        await speakText(text);
+    });
 
-        // --- 4. ФИНАЛЬНЫЙ ШТРИХ: ПРИВЕТСТВИЕ ПРИ ЗАГРУЗКЕ (чтобы аватарка сразу заговорила) ---
-        window.addEventListener('load', function() {
-            // Небольшая задержка, чтобы голоса успели подгрузиться в Chrome
-            setTimeout(() => {
-                // Обновим выбранный голос после загрузки страницы
-                updateSelectedVoice();
-                // Скажем приветствие (тихо, чтобы не пугать, если звук включен)
-                // Но можно и закомментировать, если не нужно
-                // speakText('Привет! Я готова озвучивать любые твои слова!');
-            }, 200);
-        });
+    // Диктофон
+    function initRecognition() {
+        if(!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+            statusDiv.innerHTML = '❌ Диктофон не поддерживается.';
+            recordBtn.disabled = true;
+            return false;
+        }
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        recognition = new SpeechRecognition();
+        recognition.lang = 'ru-RU';
+        recognition.onstart = () => { isRecording = true; recordBtn.classList.add('recording'); recordBtn.textContent = '⏹️'; statusDiv.innerHTML = '🎙️ Слушаю...'; };
+        recognition.onresult = async (event) => {
+            let text = event.results[0][0].transcript;
+            statusDiv.innerHTML = `📝 Распознано: "${text}"`;
+            recognizedTextDiv.style.display = 'block';
+            recognizedTextDiv.innerHTML = `🎤 Вы сказали: "${text}"`;
+            textToSpeak.value = text;
+            await speakText(text);
+        };
+        recognition.onerror = () => { statusDiv.innerHTML = '❌ Ошибка микрофона'; stopRecordingUI(); };
+        recognition.onend = () => stopRecordingUI();
+        return true;
+    }
+    function stopRecordingUI() { isRecording = false; recordBtn.classList.remove('recording'); recordBtn.textContent = '🎤'; if(!statusDiv.innerHTML.includes('Готово')) statusDiv.innerHTML = '✏️ Напиши текст или нажми 🎤'; }
+    recordBtn.addEventListener('click', () => { if(!recognition && !initRecognition()) return; if(isRecording) recognition.stop(); else recognition.start(); });
 
-    })();
+    loadVoices();
+    initRecognition();
+    updateMouthTransform();
 </script>
-
 </body>
 </html>
