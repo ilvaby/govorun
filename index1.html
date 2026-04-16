@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🤖 Говорящая аватарка</title>
+    <style>
+        body {
+            background: linear-gradient(135deg, #1e1e2f, #2a2a40);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 40px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.2);
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+        .avatar {
+            font-size: 120px;
+            filter: drop-shadow(0 10px 15px rgba(0,0,0,0.3));
+            margin-bottom: 10px;
+            transition: transform 0.2s;
+        }
+        /* Анимация "разговора" */
+        .speaking {
+            transform: scale(1.1);
+            animation: pulse 0.5s infinite alternate;
+        }
+        @keyframes pulse {
+            from { filter: drop-shadow(0 10px 15px rgba(0,255,200,0.3)); }
+            to { filter: drop-shadow(0 15px 25px rgba(0,255,200,0.6)); }
+        }
+        h2 {
+            color: white;
+            margin-top: 0;
+            font-weight: 400;
+            text-shadow: 0 2px 5px black;
+        }
+        .voice-selector {
+            background: rgba(0,0,0,0.3);
+            border-radius: 30px;
+            padding: 5px;
+            display: inline-block;
+            margin-bottom: 20px;
+            border: 1px solid #555;
+        }
+        select {
+            background: transparent;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 30px;
+            outline: none;
+            cursor: pointer;
+        }
+        select option {
+            background: #2a2a40;
+        }
+        .input-group {
+            display: flex;
+            background: white;
+            border-radius: 50px;
+            padding: 5px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        #textInput {
+            flex: 1;
+            border: none;
+            padding: 15px 20px;
+            font-size: 18px;
+            border-radius: 50px;
+            outline: none;
+            background: transparent;
+        }
+        button {
+            background: #00c8ff;
+            border: none;
+            color: white;
+            font-size: 28px;
+            padding: 5px 20px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: 0.2s;
+            box-shadow: 0 5px 0 #0088aa;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        button:hover {
+            background: #00aadd;
+            transform: translateY(-2px);
+            box-shadow: 0 7px 0 #0088aa;
+        }
+        button:active {
+            transform: translateY(3px);
+            box-shadow: 0 2px 0 #0088aa;
+        }
+        .hint {
+            color: #aaa;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <!-- Эмодзи аватарки. Можете заменить на картинку (img) -->
+    <div class="avatar" id="avatarFace">🤖</div>
+    <h2>Говорящий Бот</h2>
+    
+    <!-- Выбор другого голоса -->
+    <div class="voice-selector">
+        <select id="voiceSelect"></select>
+    </div>
+
+    <!-- Поле ввода + кнопка с микрофоном -->
+    <div class="input-group">
+        <input type="text" id="textInput" placeholder="Напиши что-нибудь..." value="Привет! Я умею говорить разными голосами!">
+        <button id="speakButton" title="Озвучить текст">🎤</button>
+    </div>
+    <div class="hint">← Нажми на микрофон — и текст зазвучит мгновенно!</div>
+</div>
+
+<script>
+    (function() {
+        "use strict";
+
+        // --- ЭЛЕМЕНТЫ НА СТРАНИЦЕ ---
+        const textInput = document.getElementById('textInput');
+        const speakBtn = document.getElementById('speakButton');
+        const voiceSelect = document.getElementById('voiceSelect');
+        const avatar = document.getElementById('avatarFace');
+
+        // --- ПЕРЕМЕННЫЕ ДЛЯ СИНТЕЗА РЕЧИ ---
+        let voices = [];
+        let selectedVoice = null;
+        const synth = window.speechSynthesis;
+
+        // --- 1. ЗАГРУЗКА ДОСТУПНЫХ ГОЛОСОВ ---
+        function loadVoices() {
+            voices = synth.getVoices();
+            
+            // Очищаем список
+            voiceSelect.innerHTML = '';
+            
+            // Сортируем: сначала русские, потом остальные
+            const ruVoices = voices.filter(v => v.lang.includes('ru'));
+            const otherVoices = voices.filter(v => !v.lang.includes('ru'));
+            
+            // Добавляем русские голоса в начало списка
+            ruVoices.forEach(voice => {
+                const option = document.createElement('option');
+                option.value = voice.name;
+                option.textContent = `${voice.name} (${voice.lang}) 🇷🇺`;
+                voiceSelect.appendChild(option);
+            });
+            
+            // Добавляем разделитель, если есть и русские и другие
+            if (ruVoices.length > 0 && otherVoices.length > 0) {
+                const separator = document.createElement('option');
+                separator.disabled = true;
+                separator.textContent = '──────────';
+                voiceSelect.appendChild(separator);
+            }
+            
+            // Добавляем остальные голоса
+            otherVoices.forEach(voice => {
+                const option = document.createElement('option');
+                option.value = voice.name;
+                option.textContent = `${voice.name} (${voice.lang})`;
+                voiceSelect.appendChild(option);
+            });
+            
+            // По умолчанию выбираем первый русский голос, если он есть
+            if (ruVoices.length > 0) {
+                voiceSelect.value = ruVoices[0].name;
+                selectedVoice = ruVoices[0];
+            } else if (voices.length > 0) {
+                voiceSelect.value = voices[0].name;
+                selectedVoice = voices[0];
+            }
+        }
+
+        // Обновление выбранного голоса при изменении селекта
+        function updateSelectedVoice() {
+            const name = voiceSelect.value;
+            selectedVoice = voices.find(v => v.name === name) || null;
+        }
+
+        // Загрузка голосов (в Chrome они грузятся асинхронно, поэтому вешаем обработчик)
+        if (speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = loadVoices;
+        }
+        loadVoices(); // На случай если голоса уже загружены
+
+        voiceSelect.addEventListener('change', updateSelectedVoice);
+
+        // --- 2. ФУНКЦИЯ ОЗВУЧКИ ТЕКСТА МГНОВЕННО ---
+        function speakText(text) {
+            if (!text || text.trim() === '') {
+                text = 'Нечего говорить. Напиши текст!';
+            }
+            
+            // Останавливаем предыдущую речь, если она идет (чтобы не накладывалась)
+            if (synth.speaking) {
+                synth.cancel();
+            }
+            
+            const utterance = new SpeechSynthesisUtterance(text);
+            
+            // Устанавливаем выбранный голос
+            if (selectedVoice) {
+                utterance.voice = selectedVoice;
+            }
+            
+            // Язык можно оставить авто, но если голос выбран, он сам знает язык
+            utterance.lang = selectedVoice ? selectedVoice.lang : 'ru-RU';
+            
+            // Параметры для естественности
+            utterance.rate = 1.0;  // Скорость
+            utterance.pitch = 1.0; // Тон
+            utterance.volume = 1.0; // Громкость
+            
+            // --- ВИЗУАЛЬНЫЙ ЭФФЕКТ "РАЗГОВОРА" (аватарка шевелится) ---
+            avatar.classList.add('speaking');
+            
+            // Когда речь закончится — убираем анимацию
+            utterance.onend = function() {
+                avatar.classList.remove('speaking');
+            };
+            
+            utterance.onerror = function() {
+                avatar.classList.remove('speaking');
+            };
+            
+            // Запускаем речь
+            synth.speak(utterance);
+        }
+
+        // --- 3. ОБРАБОТЧИК НАЖАТИЯ НА МИКРОФОН ---
+        speakBtn.addEventListener('click', function() {
+            const text = textInput.value;
+            speakText(text);
+        });
+
+        // Бонус: можно нажать Enter в поле ввода, чтобы тоже озвучить
+        textInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                speakText(textInput.value);
+            }
+        });
+
+        // --- 4. ФИНАЛЬНЫЙ ШТРИХ: ПРИВЕТСТВИЕ ПРИ ЗАГРУЗКЕ (чтобы аватарка сразу заговорила) ---
+        window.addEventListener('load', function() {
+            // Небольшая задержка, чтобы голоса успели подгрузиться в Chrome
+            setTimeout(() => {
+                // Обновим выбранный голос после загрузки страницы
+                updateSelectedVoice();
+                // Скажем приветствие (тихо, чтобы не пугать, если звук включен)
+                // Но можно и закомментировать, если не нужно
+                // speakText('Привет! Я готова озвучивать любые твои слова!');
+            }, 200);
+        });
+
+    })();
+</script>
+
+</body>
+</html>
